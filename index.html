@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Stranger Things – Final Season Death Pool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(circle at top, #1e1b4b, #020617);
+    color: #e5e7eb;
+  }
+
+  header {
+    text-align: center;
+    padding: 30px 20px;
+  }
+
+  header h1 {
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+    color: #a78bfa;
+  }
+
+  header p {
+    color: #9ca3af;
+    font-size: 1.05rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 20px;
+    max-width: 1100px;
+    margin: auto;
+    padding: 20px;
+  }
+
+  .card {
+    background: linear-gradient(145deg, #020617, #020617);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,.4);
+    transition: transform .2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+  }
+
+  .name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .ratings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .ratings button {
+    border: none;
+    padding: 6px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: .8rem;
+    color: #020617;
+    opacity: .75;
+  }
+
+  .ratings button.active {
+    opacity: 1;
+    outline: 2px solid white;
+  }
+
+  .safe { background:#22c55e }
+  .low { background:#84cc16 }
+  .maybe { background:#eab308 }
+  .half { background:#f97316 }
+  .likely { background:#ef4444 }
+  .rip { background:#7f1d1d; color:white }
+
+  textarea {
+    width: 100%;
+    background: #020617;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px;
+    color: #e5e7eb;
+    resize: none;
+  }
+
+  footer {
+    text-align: center;
+    padding: 30px;
+  }
+
+  footer button {
+    background: linear-gradient(90deg,#7c3aed,#ec4899);
+    border: none;
+    padding: 14px 26px;
+    font-size: 1rem;
+    color: white;
+    border-radius: 30px;
+    cursor: pointer;
+  }
+
+  footer button:hover {
+    opacity: .9;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Stranger Things – Final Season Death Pool</h1>
+  <p>Make your predictions before Hawkins goes dark 🩸</p>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<footer>
+  <button onclick="exportPDF()">🎬 Save My Predictions as PDF</button>
+</footer>
+
+<script>
+const characters = [
+  "Eleven","Mike","Dustin","Lucas","Will","Max",
+  "Steve","Nancy","Robin","Jonathan","Hopper","Erica"
+];
+
+const levels = [
+  { key:"safe", label:"Safe 🙂" },
+  { key:"low", label:"Low Risk" },
+  { key:"maybe", label:"Maybe 🤔" },
+  { key:"half", label:"50/50 ⚖️" },
+  { key:"likely", label:"Very Likely 😬" },
+  { key:"rip", label:"RIP ☠️" }
+];
+
+const state = {};
+
+const grid = document.getElementById("grid");
+
+characters.forEach(name => {
+  state[name] = { level:"", note:"" };
+
+  const card = document.createElement("div");
+  card.className = "card";
+
+  card.innerHTML = `
+    <div class="name">${name}</div>
+    <div class="ratings">
+      ${levels.map(l =>
+        `<button class="${l.key}" onclick="setLevel('${name}','${l.key}',this)">
+          ${l.label}
+        </button>`
+      ).join("")}
+    </div>
+    <textarea rows="2" placeholder="Your theory..." 
+      oninput="state['${name}'].note=this.value"></textarea>
+  `;
+
+  grid.appendChild(card);
+});
+
+function setLevel(name, level, btn) {
+  state[name].level = level;
+  btn.parentElement.querySelectorAll("button")
+    .forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.text("Stranger Things – Final Season Death Pool", 10, 15);
+  doc.setFontSize(11);
+
+  let y = 25;
+
+  Object.entries(state).forEach(([name, data]) => {
+    doc.text(`${name}: ${data.level || "No vote"}`, 10, y);
+    y += 6;
+    if (data.note) {
+      doc.text(`Theory: ${data.note}`, 14, y);
+      y += 6;
+    }
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+  });
+
+  doc.save("Stranger_Things_Death_Pool.pdf");
+}
+</script>
+
+</body>
+</html>
