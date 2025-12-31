@@ -64,7 +64,7 @@
 
   header {
     text-align: center;
-    padding: 60px 20px 40px;
+    padding: 50px 20px 30px;
     position: relative;
     z-index: 10;
   }
@@ -88,6 +88,40 @@
     font-size: 1.1rem;
     letter-spacing: 1px;
     margin-top: 0;
+  }
+
+  /* Name Input Section */
+  .name-input-container {
+    max-width: 500px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+    position: relative;
+    z-index: 10;
+    text-align: center;
+  }
+
+  #predictor-name-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 16px;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    outline: none;
+  }
+
+  #predictor-name-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 15px rgba(255, 0, 51, 0.3);
+  }
+  
+  #predictor-name-input::placeholder {
+      color: rgba(255,255,255,0.4);
   }
 
   .grid {
@@ -164,8 +198,7 @@
     color: white;
   }
 
-  /* Active State Logic (handled dynamically via CSS vars in JS, 
-     but defaults here for fallback) */
+  /* Active State Logic (handled dynamically via CSS vars in JS) */
   .ratings-grid button.active {
     color: #000;
     font-weight: 800;
@@ -233,9 +266,10 @@
     top: 0;
     width: 900px;
     padding: 40px;
-    background: #0f172a; /* Solid dark blue for cleaner PDF */
+    background: #0f172a;
     color: white;
     font-family: 'Inter', sans-serif;
+    border: 20px solid #0f172a; /* Fixes some edge bleed issues in PDF */
   }
   
   .export-header {
@@ -251,6 +285,8 @@
     font-size: 2.5rem;
     margin: 0;
     text-transform: uppercase;
+    /* Use stroke for PDF rendering safety instead of text-shadow */
+     -webkit-text-stroke: 1px #7f1d1d; 
   }
 
   #exportGrid {
@@ -272,10 +308,14 @@
 <header>
   <h1>Stranger Things<br><span style="font-size:0.5em; color:white; -webkit-text-stroke:0; text-shadow:none; opacity:0.8;">Death Pool</span></h1>
   <p>Place your bets before the clock strikes twelve.</p>
-  <p>
+    <p>
     Safe: Green | Low Risk: Lime | Maybe: Yellow (Caution) | 50/50: Orange (High Alert) | Likely: Red (Danger) | RIP: Dark Red (Death)
   </p>
 </header>
+
+<div class="name-input-container">
+    <input type="text" id="predictor-name-input" placeholder="Enter your name here..." autocomplete="off">
+</div>
 
 <div class="grid" id="grid"></div>
 
@@ -288,7 +328,8 @@
 <div id="exportBoard">
   <div class="export-header">
     <h2>Stranger Things</h2>
-    <p style="color:#94a3b8; margin-top:5px; font-size:1.2rem;">Final Season Predictions</p>
+    <p style="color:#94a3b8; margin-top:5px; font-size:1.2rem; margin-bottom: 10px;">Final Season Predictions</p>
+    <div id="exportNameSlot" style="font-size: 1.1rem; color: #cbd5e1; font-style: italic;"></div>
   </div>
   <div id="exportGrid"></div>
 </div>
@@ -308,11 +349,12 @@ const tiers = [
   { key:"maybe", label:"Maybe", color:"#eab308", bg:"rgba(234, 179, 8, 0.2)" },
   { key:"half", label:"50/50", color:"#f97316", bg:"rgba(249, 115, 22, 0.2)" },
   { key:"likely", label:"Likely", color:"#ef4444", bg:"rgba(239, 68, 68, 0.2)" },
-  { key:"rip", label:"DEAD ☠️", color:"#f43f5e", bg:"#be123c" } // Solid bg for RIP
+  { key:"rip", label:"DEAD ☠️", color:"#f43f5e", bg:"#be123c" }
 ];
 
 const state = {};
 const grid = document.getElementById("grid");
+const nameInput = document.getElementById("predictor-name-input");
 
 // Initialize Cards
 characters.forEach(name => {
@@ -355,7 +397,7 @@ function setLevel(name, level, btn) {
   btn.classList.add("active");
   const color = btn.getAttribute("data-color");
   
-  // Special style for RIP vs others
+  // Special style for RIP vs others (so text stays readable)
   if(level === 'rip') {
       btn.style.backgroundColor = color;
       btn.style.color = "white";
@@ -368,10 +410,12 @@ function setLevel(name, level, btn) {
 async function exportPDF() {
   const board = document.getElementById("exportBoard");
   const exportGrid = document.getElementById("exportGrid");
+  const exportNameSlot = document.getElementById("exportNameSlot");
   exportGrid.innerHTML = "";
   
   let count = 0;
 
+  // 1. Populate the grid
   Object.entries(state).forEach(([name, data]) => {
     if (!data.level) return;
     count++;
@@ -401,39 +445,59 @@ async function exportPDF() {
     return;
   }
 
-  // Generate PDF
-  // We temporarily make the board visible (but off screen) to render it
-  // (It is already off-screen via CSS)
-  
+  // 2. Insert the name into the hidden board
+  const predictorName = nameInput.value.trim();
+  if (predictorName) {
+       exportNameSlot.innerHTML = `Predictions by: <span style="color:#f87171; font-weight:600;">${predictorName}</span>`;
+       exportNameSlot.style.display = "block";
+  } else {
+       exportNameSlot.style.display = "none";
+  }
+
+
+  // 3. Generate PDF
   try {
       const btn = document.querySelector('.export-btn');
       const originalText = btn.innerText;
       btn.innerText = "Generating...";
       btn.style.opacity = "0.7";
 
+      // Add a slight delay to ensure DOM updates before capture
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(board, {
         scale: 2,
-        backgroundColor: "#0f172a", // Match background
-        useCORS: true
+        backgroundColor: "#0f172a",
+        useCORS: true,
+        logging: false
       });
 
       const imgData = canvas.toDataURL("image/png");
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF("portrait", "mm", "a4");
+      // Use a slightly darker background for the PDF page itself
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      pdf.setFillColor(15, 23, 42); // #0f172a
+      pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight(), 'F');
+
       
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-      pdf.save("Stranger_Things_Predictions.pdf");
+      
+      // Filename based on name if provided
+      const filename = predictorName ? `Stranger_Things_Predictions_${predictorName.replace(/[^a-z0-9]/gi, '_')}.pdf` : "Stranger_Things_Predictions.pdf";
+      pdf.save(filename);
       
       btn.innerText = originalText;
       btn.style.opacity = "1";
   } catch (err) {
       console.error(err);
       alert("Error generating PDF. Check console.");
+      const btn = document.querySelector('.export-btn');
+      btn.innerText = "🎬 Download Predictions";
+      btn.style.opacity = "1";
   }
 }
 </script>
