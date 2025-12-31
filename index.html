@@ -2,170 +2,334 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Stranger Things – Final Season Death Pool</title>
+<title>Stranger Things – The Final Bet</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<!-- jsPDF -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <style>
+  :root {
+    --bg-dark: #0f0c29;
+    --bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    --card-bg: rgba(255, 255, 255, 0.03);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --accent: #ff0033; /* Stranger Things Red */
+    --text-main: #e0e0e0;
+    --text-muted: #94a3b8;
+    
+    /* Risk Colors */
+    --c-safe: #10b981;
+    --c-low: #84cc16;
+    --c-maybe: #eab308;
+    --c-half: #f97316;
+    --c-likely: #ef4444;
+    --c-rip: #9f1239;
+  }
+
+  * { box-sizing: border-box; }
+
   body {
     margin: 0;
-    font-family: "Segoe UI", system-ui, sans-serif;
-    background: radial-gradient(circle at top, #1e1b4b, #020617);
-    color: #e5e7eb;
+    font-family: 'Inter', sans-serif;
+    background: #000;
+    background-image: 
+      radial-gradient(circle at 50% 0%, #4c0519 0%, transparent 50%),
+      linear-gradient(to bottom, #020617, #1e1b4b);
+    color: var(--text-main);
+    min-height: 100vh;
+    padding-bottom: 60px;
+    overflow-x: hidden;
+  }
+
+  /* CRT Scanline Overlay Effect */
+  body::after {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.15),
+      rgba(0, 0, 0, 0.15) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+    pointer-events: none;
+    z-index: 999;
   }
 
   header {
     text-align: center;
-    padding: 30px 20px;
+    padding: 60px 20px 40px;
+    position: relative;
+    z-index: 10;
   }
 
   header h1 {
-    font-size: 2.2rem;
-    margin-bottom: 8px;
-    color: #a78bfa;
+    font-family: 'Merriweather', serif;
+    font-weight: 900;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    margin: 0 0 10px;
+    color: transparent;
+    -webkit-text-stroke: 1.5px #c71e1e;
+    text-shadow: 
+      0 0 10px rgba(199, 30, 30, 0.5),
+      0 0 20px rgba(199, 30, 30, 0.3);
+    letter-spacing: -1px;
+    text-transform: uppercase;
   }
 
   header p {
-    color: #9ca3af;
-    font-size: 1.05rem;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    margin-top: 0;
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 20px;
-    max-width: 1100px;
-    margin: auto;
-    padding: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    z-index: 10;
   }
 
   .card {
-    background: linear-gradient(145deg, #020617, #020617);
-    border-radius: 14px;
-    padding: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,.4);
-    transition: transform .2s ease;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
   }
 
   .card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5);
   }
+
+  /* Subtle Red Glow on Card Hover */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 4px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .card:hover::before { opacity: 1; }
 
   .name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 10px;
+    font-family: 'Merriweather', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
   }
 
-  .ratings {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 10px;
+  .ratings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
   }
 
-  .ratings button {
-    border: none;
-    padding: 6px 10px;
-    border-radius: 20px;
+  .ratings-grid button {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #a1a1aa;
+    padding: 8px 4px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: .8rem;
-    color: #020617;
-    opacity: .75;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
   }
 
-  .ratings button.active {
-    opacity: 1;
-    outline: 2px solid white;
+  .ratings-grid button:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
   }
 
-  .safe { background:#22c55e }
-  .low { background:#84cc16 }
-  .maybe { background:#eab308 }
-  .half { background:#f97316 }
-  .likely { background:#ef4444 }
-  .rip { background:#7f1d1d; color:white }
+  /* Active State Logic (handled dynamically via CSS vars in JS, 
+     but defaults here for fallback) */
+  .ratings-grid button.active {
+    color: #000;
+    font-weight: 800;
+    border-color: transparent;
+    box-shadow: 0 0 12px currentColor;
+    transform: scale(1.02);
+  }
 
   textarea {
     width: 100%;
-    background: #020617;
-    border: 1px solid #334155;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 8px;
+    padding: 12px;
     color: #e5e7eb;
     resize: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  textarea:focus {
+    border-color: var(--accent);
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  textarea::placeholder {
+    color: rgba(255,255,255,0.2);
   }
 
   footer {
     text-align: center;
-    padding: 30px;
+    padding: 50px 20px;
+    z-index: 10;
+    position: relative;
   }
 
-  footer button {
-    background: linear-gradient(90deg,#7c3aed,#ec4899);
+  footer button.export-btn {
+    background: linear-gradient(135deg, #b91c1c, #db2777);
     border: none;
-    padding: 14px 26px;
-    font-size: 1rem;
+    padding: 16px 36px;
+    font-size: 1.1rem;
+    font-weight: 700;
     color: white;
-    border-radius: 30px;
+    border-radius: 50px;
     cursor: pointer;
+    box-shadow: 
+      0 0 20px rgba(220, 38, 38, 0.4),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
-  footer button:hover {
-    opacity: .9;
+  footer button.export-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.6);
+  }
+
+  /* --- EXPORT VIEW (Hidden) --- */
+  #exportBoard {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 900px;
+    padding: 40px;
+    background: #0f172a; /* Solid dark blue for cleaner PDF */
+    color: white;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .export-header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #334155;
+    padding-bottom: 20px;
+  }
+  
+  .export-header h2 {
+    font-family: 'Merriweather', serif;
+    color: #f87171;
+    font-size: 2.5rem;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  #exportGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .export-card {
+    padding: 15px;
+    border-radius: 12px;
+    color: #fff;
+    page-break-inside: avoid;
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Stranger Things – Final Season Death Pool</h1>
-  <p>Make your predictions before Hawkins goes dark 🩸</p>
+  <h1>Stranger Things<br><span style="font-size:0.5em; color:white; -webkit-text-stroke:0; text-shadow:none; opacity:0.8;">Death Pool</span></h1>
+  <p>Place your bets before the clock strikes twelve.</p>
 </header>
 
 <div class="grid" id="grid"></div>
 
 <footer>
-  <button onclick="exportPDF()">🎬 Save My Predictions as PDF</button>
+  <button class="export-btn" onclick="exportPDF()">
+    🎬 Download Predictions
+  </button>
 </footer>
+
+<div id="exportBoard">
+  <div class="export-header">
+    <h2>Stranger Things</h2>
+    <p style="color:#94a3b8; margin-top:5px; font-size:1.2rem;">Final Season Predictions</p>
+  </div>
+  <div id="exportGrid"></div>
+</div>
 
 <script>
 const characters = [
-  "Eleven","Mike","Dustin","Lucas","Will","Max",
-  "Steve","Nancy","Robin","Jonathan","Hopper","Erica"
+  "Eleven", "Mike Wheeler", "Dustin Henderson", 
+  "Lucas Sinclair", "Will Byers", "Max Mayfield",
+  "Steve Harrington", "Nancy Wheeler", "Robin Buckley", 
+  "Jonathan Byers", "Jim Hopper", "Joyce Byers", 
+  "Murray Bauman", "Erica Sinclair", "Vecna"
 ];
 
-const levels = [
-  { key:"safe", label:"Safe 🙂" },
-  { key:"low", label:"Low Risk" },
-  { key:"maybe", label:"Maybe 🤔" },
-  { key:"half", label:"50/50 ⚖️" },
-  { key:"likely", label:"Very Likely 😬" },
-  { key:"rip", label:"RIP ☠️" }
+const tiers = [
+  { key:"safe", label:"Safe", color:"#10b981", bg:"rgba(16, 185, 129, 0.2)" },
+  { key:"low", label:"Low Risk", color:"#84cc16", bg:"rgba(132, 204, 22, 0.2)" },
+  { key:"maybe", label:"Maybe", color:"#eab308", bg:"rgba(234, 179, 8, 0.2)" },
+  { key:"half", label:"50/50", color:"#f97316", bg:"rgba(249, 115, 22, 0.2)" },
+  { key:"likely", label:"Likely", color:"#ef4444", bg:"rgba(239, 68, 68, 0.2)" },
+  { key:"rip", label:"DEAD ☠️", color:"#f43f5e", bg:"#be123c" } // Solid bg for RIP
 ];
 
 const state = {};
-
 const grid = document.getElementById("grid");
 
+// Initialize Cards
 characters.forEach(name => {
-  state[name] = { level:"", note:"" };
+  state[name] = { level: "", note: "" };
 
   const card = document.createElement("div");
   card.className = "card";
 
   card.innerHTML = `
     <div class="name">${name}</div>
-    <div class="ratings">
-      ${levels.map(l =>
-        `<button class="${l.key}" onclick="setLevel('${name}','${l.key}',this)">
-          ${l.label}
-        </button>`
+    <div class="ratings-grid">
+      ${tiers.map(t => 
+        `<button 
+           data-color="${t.color}" 
+           onclick="setLevel('${name}', '${t.key}', this)">
+           ${t.label}
+         </button>`
       ).join("")}
     </div>
-    <textarea rows="2" placeholder="Your theory..." 
+    <textarea rows="2" placeholder="How does it happen? (Optional)"
       oninput="state['${name}'].note=this.value"></textarea>
   `;
 
@@ -174,35 +338,100 @@ characters.forEach(name => {
 
 function setLevel(name, level, btn) {
   state[name].level = level;
-  btn.parentElement.querySelectorAll("button")
-    .forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-}
-
-function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  doc.setFontSize(18);
-  doc.text("Stranger Things – Final Season Death Pool", 10, 15);
-  doc.setFontSize(11);
-
-  let y = 25;
-
-  Object.entries(state).forEach(([name, data]) => {
-    doc.text(`${name}: ${data.level || "No vote"}`, 10, y);
-    y += 6;
-    if (data.note) {
-      doc.text(`Theory: ${data.note}`, 14, y);
-      y += 6;
-    }
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
-    }
+  
+  // Handle visual selection
+  const parent = btn.parentElement;
+  parent.querySelectorAll("button").forEach(b => {
+    b.classList.remove("active");
+    b.style.backgroundColor = ""; 
+    b.style.color = "";
+    b.style.boxShadow = "";
   });
 
-  doc.save("Stranger_Things_Death_Pool.pdf");
+  // Apply active styles using the data-color attribute
+  btn.classList.add("active");
+  const color = btn.getAttribute("data-color");
+  
+  // Special style for RIP vs others
+  if(level === 'rip') {
+      btn.style.backgroundColor = color;
+      btn.style.color = "white";
+  } else {
+      btn.style.backgroundColor = color;
+      btn.style.color = "#000";
+  }
+}
+
+async function exportPDF() {
+  const board = document.getElementById("exportBoard");
+  const exportGrid = document.getElementById("exportGrid");
+  exportGrid.innerHTML = "";
+  
+  let count = 0;
+
+  Object.entries(state).forEach(([name, data]) => {
+    if (!data.level) return;
+    count++;
+
+    const tier = tiers.find(t => t.key === data.level);
+
+    const card = document.createElement("div");
+    card.className = "export-card";
+    
+    // Inline styles for html2canvas reliability
+    card.style.background = tier.key === 'rip' ? '#881337' : '#1e293b';
+    card.style.borderLeft = `6px solid ${tier.color}`;
+    
+    card.innerHTML = `
+      <div style="font-size:1.1rem; font-weight:bold; margin-bottom:4px; font-family:'Merriweather',serif;">${name}</div>
+      <div style="color:${tier.key === 'rip' ? 'white' : tier.color}; font-weight:bold; text-transform:uppercase; font-size:0.85rem; margin-bottom:6px;">
+        ${tier.label}
+      </div>
+      ${data.note ? `<div style="font-size:0.8rem; color:#cbd5e1; font-style:italic; line-height:1.4;">"${data.note}"</div>` : ""}
+    `;
+
+    exportGrid.appendChild(card);
+  });
+
+  if(count === 0) {
+    alert("Please make at least one prediction first!");
+    return;
+  }
+
+  // Generate PDF
+  // We temporarily make the board visible (but off screen) to render it
+  // (It is already off-screen via CSS)
+  
+  try {
+      const btn = document.querySelector('.export-btn');
+      const originalText = btn.innerText;
+      btn.innerText = "Generating...";
+      btn.style.opacity = "0.7";
+
+      const canvas = await html2canvas(board, {
+        scale: 2,
+        backgroundColor: "#0f172a", // Match background
+        useCORS: true
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF("portrait", "mm", "a4");
+      
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      pdf.save("Stranger_Things_Predictions.pdf");
+      
+      btn.innerText = originalText;
+      btn.style.opacity = "1";
+  } catch (err) {
+      console.error(err);
+      alert("Error generating PDF. Check console.");
+  }
 }
 </script>
 
