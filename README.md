@@ -8,6 +8,10 @@ This was created as a lighthearted side project to predict character outcomes in
 
 A playful "death pool" where you can make predictions about which characters might meet their end in the beloved Netflix series.
 
+## Screenshot
+
+![Output Screenshot](OutputScreenshot.png)
+
 ## Disclaimer
 
 This is purely for fun and fandom entertainment. No actual spoilers or inside information here—just speculation and guesses!
